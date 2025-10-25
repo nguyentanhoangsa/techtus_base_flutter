@@ -72,18 +72,19 @@ void main(List<String> args) {
 
 class ApiGenerator {
   static const String appApiServicePath = 'lib/data_source/api/app_api_service.dart';
-  static const String modelApiPath = 'lib/model/api';
+  static const String modelApiPath = 'lib/model/api/respone';
+  static const String requestModelPath = 'lib/model/api/request';
   static const String enumPath = 'lib/model/enum';
   static const String generatedMethodsMarker =
       '// GENERATED CODE - DO NOT MODIFY OR DELETE THIS COMMENT';
 
   late String _appApiServicePath;
   late String _modelApiPath;
+  late String _requestModelPath;
   late String _enumPath;
   late bool _replace;
   late Set<String> _allowedApis;
   late String _wrappedBy;
-  late Map<String, dynamic> _components;
   final Map<String, String> _schemaNameCache = {};
   final Set<String> _usedModelNames = {};
   final Map<String, String> _endpointResponseNameCache = {};
@@ -104,10 +105,12 @@ class ApiGenerator {
     if (outputPath != null) {
       _appApiServicePath = '$outputPath/app_api_service.dart';
       _modelApiPath = '$outputPath/model';
+      _requestModelPath = '$outputPath/request';
       _enumPath = '$outputPath/enum';
     } else {
       _appApiServicePath = appApiServicePath;
       _modelApiPath = modelApiPath;
+      _requestModelPath = requestModelPath;
       _enumPath = enumPath;
     }
     print('📁 Checking folder: $folderPath');
@@ -117,7 +120,8 @@ class ApiGenerator {
     print('🔄 Replace mode: $_replace');
     print('📂 Output paths:');
     print('  - API Service: $_appApiServicePath');
-    print('  - Models: $_modelApiPath');
+    print('  - Response Models: $_modelApiPath');
+    print('  - Request Models: $_requestModelPath');
     print('  - Enums: $_enumPath');
     print('  - Wrapped by: $_wrappedBy');
 
@@ -173,7 +177,6 @@ class ApiGenerator {
 
     final openApiContent = openApiFile.readAsStringSync();
     final openApiData = jsonDecode(openApiContent) as Map<String, dynamic>;
-    _components = (openApiData['components'] as Map<String, dynamic>? ?? {});
 
     // Ensure DataResponse key matches wrappedBy (data|result)
     _syncDataResponseKey();
@@ -605,71 +608,16 @@ class ApiGenerator {
   BodyParamsGenerationResult? _prepareBodyParameters(EndpointInfo endpoint) {
     final schema = endpoint.bodySchema;
     if (schema == null || schema.isEmpty) {
-      return BodyParamsGenerationResult(
-        paramSignatures: ['Map<String, dynamic>? body'],
-        bodySetupLines: const [],
-        bodyArgument: 'body',
-      );
+      return null;
     }
 
-    if (schema['type'] == 'object' && schema['properties'] is Map<String, dynamic>) {
-      final properties = schema['properties'] as Map<String, dynamic>;
-      final requiredSet = (schema['required'] as List<dynamic>?)?.cast<String>().toSet() ?? {};
-      final requiredSignatures = <String>[];
-      final optionalSignatures = <String>[];
-      final requiredBodyLines = <String>[];
-      final optionalBodyLines = <String>[];
-
-      for (final entry in properties.entries) {
-        final propertyName = entry.key;
-        final resolvedProperty = _resolveSchema(
-          (entry.value as Map<String, dynamic>?) ?? <String, dynamic>{},
-          _components,
-        );
-        final rawType = _getRequestFieldDartType(resolvedProperty, propertyName);
-        final isNullable = (resolvedProperty['nullable'] as bool? ?? false);
-        final isRequired = requiredSet.contains(propertyName) && !isNullable;
-        final paramName = _toCamelCase(propertyName);
-        final type = rawType.isEmpty ? 'dynamic' : rawType;
-        if (isRequired) {
-          requiredSignatures.add('required $type $paramName');
-          requiredBodyLines.add("      '$propertyName': $paramName,");
-        } else {
-          optionalSignatures.add('${type.endsWith('?') ? type : '$type?'} $paramName');
-          optionalBodyLines.add("      if ($paramName != null) '$propertyName': $paramName,");
-        }
-      }
-
-      final paramSignatures = <String>[
-        ...requiredSignatures,
-        ...optionalSignatures,
-      ];
-      final bodyLines = <String>[
-        '    final requestBody = <String, dynamic>{',
-        ...requiredBodyLines,
-        ...optionalBodyLines,
-        '    };',
-      ];
-
-      return BodyParamsGenerationResult(
-        paramSignatures: paramSignatures,
-        bodySetupLines: bodyLines,
-        bodyArgument: 'requestBody',
-      );
-    }
-
-    final type = _getRequestFieldDartType(schema, 'body');
-    final resolvedType = type.isEmpty ? 'dynamic' : type;
-    final isNullable = (schema['nullable'] as bool? ?? false);
-    final paramType = isNullable || resolvedType.endsWith('?')
-        ? (resolvedType.endsWith('?') ? resolvedType : '$resolvedType?')
-        : resolvedType;
-    final signature = isNullable ? '$paramType body' : 'required $paramType body';
-
+    // Use request model class for body
+    final requestModelName = _generateRequestModelName(endpoint);
+    
     return BodyParamsGenerationResult(
-      paramSignatures: [signature],
+      paramSignatures: ['required $requestModelName request'],
       bodySetupLines: const [],
-      bodyArgument: 'body',
+      bodyArgument: 'request.toJson()',
     );
   }
 
@@ -686,37 +634,6 @@ class ApiGenerator {
         return 'bool';
       default:
         return null;
-    }
-  }
-
-  String _getRequestFieldDartType(Map<String, dynamic> schema, String fieldName) {
-    if (schema.containsKey('\$ref')) {
-      final ref = schema['\$ref'] as String;
-      if (ref.startsWith('#/components/schemas/')) {
-        final rawName = ref.split('/').last;
-        return _resolveSchemaClassName(rawName);
-      }
-    }
-
-    final type = schema['type'] as String?;
-    switch (type) {
-      case 'string':
-        return 'String';
-      case 'integer':
-        return 'int';
-      case 'number':
-        return 'double';
-      case 'boolean':
-        return 'bool';
-      case 'array':
-        final items = schema['items'] as Map<String, dynamic>? ?? {};
-        final itemType = _getRequestFieldDartType(items, '${fieldName}Item');
-        final resolvedItemType = itemType.isEmpty ? 'dynamic' : itemType;
-        return 'List<$resolvedItemType>';
-      case 'object':
-        return 'Map<String, dynamic>';
-      default:
-        return 'dynamic';
     }
   }
 
@@ -808,6 +725,22 @@ class ApiGenerator {
     _endpointArrayItemNameCache[key] = name;
 
     return name;
+  }
+
+  String _generateRequestModelName(EndpointInfo endpoint) {
+    final cleanPath = _cleanPathForName(endpoint.path);
+    var base = _toPascalCase(cleanPath);
+    
+    // Remove "Data" suffix if present (case-insensitive)
+    if (base.endsWith('Data')) {
+      base = base.substring(0, base.length - 4);
+    }
+    
+    final requestName = '${base}Request';
+    
+    // Don't use _registerModelName for request models to avoid auto-appending "Data"
+    // Request models should have unique names without collision
+    return requestName;
   }
 
   // Removed unused: _generateRequestModelName
@@ -1048,6 +981,28 @@ class ApiGenerator {
       }
     }
 
+    // Generate request models from bodySchema
+    print('🏗️ Generating request models...');
+    for (final endpoint in endpoints) {
+      if (!_shouldIncludeEndpoint(endpoint)) continue;
+      
+      final bodySchema = endpoint.bodySchema;
+      if (bodySchema == null || bodySchema.isEmpty) continue;
+      
+      final requestModelName = _generateRequestModelName(endpoint);
+      final result = _generateRequestModelFileFromSchema(
+        requestModelName,
+        bodySchema,
+        components,
+      );
+      final fileName = _modelNameToFileName(requestModelName);
+      _writeRequestModelFile(fileName, result.mainContent);
+      generatedModels.add(requestModelName);
+      if (result.nestedClasses.isNotEmpty) {
+        _writeNestedRequestClassFiles(result.nestedClasses, generatedModels);
+      }
+    }
+
     return generatedModels;
   }
 
@@ -1136,6 +1091,24 @@ class ApiGenerator {
     Map<String, dynamic>? components,
   ]) {
     final classResult = _generateModelClassFromSchema(
+      modelName,
+      schema,
+      components: components,
+    );
+
+    if (classResult.mainClass.trim().isEmpty) {
+      return ModelGenerationResult(mainContent: '', nestedClasses: const []);
+    }
+
+    return _buildGenerationResult(modelName, classResult);
+  }
+
+  ModelGenerationResult _generateRequestModelFileFromSchema(
+    String modelName,
+    Map<String, dynamic> schema, [
+    Map<String, dynamic>? components,
+  ]) {
+    final classResult = _generateRequestModelClassFromSchema(
       modelName,
       schema,
       components: components,
@@ -1296,6 +1269,105 @@ ${fieldsResult.fields.map((f) => '    $f').join(',\n')},
     return ModelClassResult(mainClass: '', nestedClasses: const []);
   }
 
+  ModelClassResult _generateRequestModelClassFromSchema(
+    String modelName,
+    Map<String, dynamic> schema, {
+    String? prefix,
+    Map<String, dynamic>? components,
+    int depth = 0,
+  }) {
+    final className = prefix != null ? '$prefix$modelName' : modelName;
+    final privateClassName = '_\$${className}';
+    final factoryName = '_$className';
+    final nestedClasses = <NestedClassInfo>[];
+
+    if (schema.containsKey('allOf')) {
+      final allOf = schema['allOf'] as List<dynamic>;
+      final mergedSchema = <String, dynamic>{};
+      final allRequired = <String>[];
+
+      for (final item in allOf) {
+        final itemSchema = item as Map<String, dynamic>;
+        final resolvedSchema =
+            components != null ? _resolveSchema(itemSchema, components) : itemSchema;
+
+        if (resolvedSchema.containsKey('properties')) {
+          final properties = resolvedSchema['properties'] as Map<String, dynamic>;
+          mergedSchema.addAll(properties);
+        }
+
+        if (resolvedSchema.containsKey('required')) {
+          final required =
+              (resolvedSchema['required'] as List<dynamic>?)?.cast<String>() ?? <String>[];
+          allRequired.addAll(required);
+        }
+      }
+
+      if (mergedSchema.isNotEmpty) {
+        final fieldsResult = _generateRequestFieldsFromSchema(
+          mergedSchema,
+          allRequired,
+          className,
+          components,
+          depth,
+        );
+        nestedClasses.addAll(fieldsResult.nestedClasses);
+
+        if (fieldsResult.fields.isNotEmpty) {
+          final mainClass = '''@freezed
+sealed class $className with $privateClassName {
+  const $className._();
+
+  const factory $className({
+${fieldsResult.fields.map((f) => '    $f').join(',\n')},
+  }) = $factoryName;
+
+  factory $className.fromJson(Map<String, dynamic> json) => _\$${className}FromJson(json);
+}''';
+
+          return ModelClassResult(
+            mainClass: mainClass,
+            nestedClasses: nestedClasses,
+          );
+        }
+      }
+    } else if (schema['type'] == 'object' && schema.containsKey('properties')) {
+      final properties = schema['properties'] as Map<String, dynamic>;
+      final requiredFields = (schema['required'] as List<dynamic>?)?.cast<String>() ?? <String>[];
+
+      final fieldsResult = _generateRequestFieldsFromSchema(
+        properties,
+        requiredFields,
+        className,
+        components,
+        depth,
+      );
+      nestedClasses.addAll(fieldsResult.nestedClasses);
+
+      if (fieldsResult.fields.isEmpty) {
+        return ModelClassResult(mainClass: '', nestedClasses: nestedClasses);
+      }
+
+      final mainClass = '''@freezed
+sealed class $className with $privateClassName {
+  const $className._();
+
+  const factory $className({
+${fieldsResult.fields.map((f) => '    $f').join(',\n')},
+  }) = $factoryName;
+
+  factory $className.fromJson(Map<String, dynamic> json) => _\$${className}FromJson(json);
+}''';
+
+      return ModelClassResult(
+        mainClass: mainClass,
+        nestedClasses: nestedClasses,
+      );
+    }
+
+    return ModelClassResult(mainClass: '', nestedClasses: const []);
+  }
+
   ModelClassResult _generateModelClassWithNested(
     String modelName,
     dynamic responseExample, {
@@ -1341,13 +1413,96 @@ ${fieldsResult.fields.map((f) => '    $f').join(',\n')},
   String _generateImports(String fileName) {
     return '''import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../../index.dart';
+import '../../../index.dart';
 
 part '$fileName.freezed.dart';
 part '$fileName.g.dart';''';
   }
 
   FieldGenerationResult _generateFieldsFromSchema(
+    Map<String, dynamic> properties,
+    List<String> requiredFields,
+    String parentClassName,
+    Map<String, dynamic>? components,
+    int depth,
+  ) {
+    final fields = <String>[];
+    final nestedClasses = <NestedClassInfo>[];
+
+    for (final entry in properties.entries) {
+      final fieldName = entry.key;
+      final fieldSchema = entry.value as Map<String, dynamic>;
+      final dartFieldName = _toCamelCase(fieldName);
+
+      String fieldType = '';
+      String defaultValue = '';
+      bool shouldAddField = true;
+
+      final dartType = _getDartTypeFromSchema(
+        fieldSchema,
+        parentClassName,
+        fieldName,
+        nestedClasses,
+        components,
+        depth,
+      );
+
+      if (dartType == null) {
+        shouldAddField = false;
+      } else {
+        // Check if dartType already has nullable syntax
+        final isAlreadyNullable = dartType.endsWith('?');
+        
+        // Remove nullable syntax if present - we'll handle it ourselves
+        fieldType = isAlreadyNullable ? dartType.substring(0, dartType.length - 1) : dartType;
+
+        // Check if this is an enum field
+        final enumValues = fieldSchema['enum'] as List<dynamic>?;
+        final isEnum = enumValues != null && enumValues.isNotEmpty;
+
+        // Always gen default for ALL types including objects
+        if (fieldType == 'String') {
+          defaultValue = "@Default('')";
+        } else if (fieldType == 'int') {
+          defaultValue = '@Default(0)';
+        } else if (fieldType == 'double') {
+          defaultValue = '@Default(0.0)';
+        } else if (fieldType == 'bool') {
+          defaultValue = '@Default(false)';
+        } else if (fieldType.startsWith('List<')) {
+          defaultValue = '@Default([])';
+        } else if (fieldType.startsWith('Map<')) {
+          defaultValue = '@Default({})';
+        } else if (isEnum) {
+          // For enum types, always use 'none' as default
+          defaultValue = '@Default($fieldType.none)';
+        } else if (!fieldType.endsWith('?')) {
+          // For object types, gen default with empty constructor
+          final isPrimitive = fieldType == 'String' || fieldType == 'int' || 
+                              fieldType == 'double' || fieldType == 'bool';
+          final isCollection = fieldType.startsWith('List<') || fieldType.startsWith('Map<');
+          if (!isPrimitive && !isCollection) {
+            defaultValue = '@Default($fieldType())';
+          }
+        }
+      }
+
+      if (shouldAddField && fieldType.isNotEmpty) {
+        final jsonKey = "@JsonKey(name: '$fieldName')";
+        final annotations = <String>[];
+        if (!fieldType.endsWith('?') && defaultValue.isNotEmpty) {
+          annotations.add(defaultValue);
+        }
+        annotations.add(jsonKey);
+        final field = '${annotations.join(' ')} $fieldType $dartFieldName';
+        fields.add(field);
+      }
+    }
+
+    return FieldGenerationResult(fields: fields, nestedClasses: nestedClasses);
+  }
+
+  FieldGenerationResult _generateRequestFieldsFromSchema(
     Map<String, dynamic> properties,
     List<String> requiredFields,
     String parentClassName,
@@ -1381,12 +1536,22 @@ part '$fileName.g.dart';''';
       } else {
         // Check if dartType already has nullable syntax
         final isAlreadyNullable = dartType.endsWith('?');
-        fieldType = isRequired
-            ? (isAlreadyNullable ? dartType.substring(0, dartType.length - 1) : dartType)
-            : (isAlreadyNullable ? dartType : '$dartType?');
-
-        if (isRequired && !fieldType.endsWith('?')) {
-          // Add default value for required fields
+        
+        // Check if field is nullable from schema
+        final isNullableFromSchema = (fieldSchema['nullable'] as bool? ?? false);
+        
+        // Remove nullable syntax if present
+        final baseType = isAlreadyNullable ? dartType.substring(0, dartType.length - 1) : dartType;
+        
+        // Determine final nullable status:
+        // - If not required → nullable (no default)
+        // - If nullable in schema → nullable (no default)
+        // - Otherwise → non-nullable with default
+        if (!isRequired || isNullableFromSchema) {
+          fieldType = '$baseType?';
+        } else {
+          fieldType = baseType;
+          // Add default for required non-nullable fields
           if (fieldType == 'String') {
             defaultValue = "@Default('')";
           } else if (fieldType == 'int') {
@@ -1397,17 +1562,8 @@ part '$fileName.g.dart';''';
             defaultValue = '@Default(false)';
           } else if (fieldType.startsWith('List<')) {
             defaultValue = '@Default([])';
-          }
-        }
-
-        // If still required but no default assigned, and it's an object-like type,
-        // make it nullable to avoid missing required values without defaults.
-        if (isRequired && defaultValue.isEmpty && !fieldType.endsWith('?')) {
-          final t = fieldType;
-          final isPrimitive = t == 'String' || t == 'int' || t == 'double' || t == 'bool';
-          final isCollection = t.startsWith('List<') || t.startsWith('Map<');
-          if (!isPrimitive && !isCollection) {
-            fieldType = '$fieldType?';
+          } else if (fieldType.startsWith('Map<')) {
+            defaultValue = '@Default({})';
           }
         }
       }
@@ -1415,7 +1571,7 @@ part '$fileName.g.dart';''';
       if (shouldAddField && fieldType.isNotEmpty) {
         final jsonKey = "@JsonKey(name: '$fieldName')";
         final annotations = <String>[];
-        if (!fieldType.endsWith('?') && defaultValue.isNotEmpty) {
+        if (defaultValue.isNotEmpty) {
           annotations.add(defaultValue);
         }
         annotations.add(jsonKey);
@@ -1514,10 +1670,17 @@ part '$fileName.g.dart';''';
     final enumName =
         className.endsWith('Enum') ? className.substring(0, className.length - 4) : className;
 
+    // Add 'none' as first value if not already present
+    final enumValues = <String>[];
+    if (!values.contains('none')) {
+      enumValues.add('none');
+    }
+    enumValues.addAll(values);
+
     return '''import 'package:json_annotation/json_annotation.dart';
 
 enum $enumName {
-${values.map((v) => "  @JsonValue('$v')\n  $v,").join('\n')}
+${enumValues.map((v) => "  @JsonValue('$v')\n  $v,").join('\n')}
 }''';
   }
 
@@ -1699,6 +1862,42 @@ ${values.map((v) => "  @JsonValue('$v')\n  $v,").join('\n')}
         .replaceFirst("part '${_modelNameToFileName('')}.g.dart';", "part '$fileName.g.dart';");
 
     file.writeAsStringSync(updatedContent);
+  }
+
+  void _writeRequestModelFile(String fileName, String content) {
+    final filePath = '$_requestModelPath/$fileName.dart';
+    final file = File(filePath);
+
+    // Create directory if it doesn't exist
+    file.parent.createSync(recursive: true);
+
+    // If content is empty, skip writing file
+    if (content.trim().isEmpty) return;
+
+    // Update imports in the content
+    final updatedContent = content
+        .replaceFirst(
+            "part '${_modelNameToFileName('')}.freezed.dart';", "part '$fileName.freezed.dart'")
+        .replaceFirst("part '${_modelNameToFileName('')}.g.dart';", "part '$fileName.g.dart';");
+
+    file.writeAsStringSync(updatedContent);
+  }
+
+  void _writeNestedRequestClassFiles(
+    List<NestedClassInfo> nestedClasses,
+    List<String> generatedModels,
+  ) {
+    for (final nested in nestedClasses) {
+      if (generatedModels.contains(nested.className)) continue;
+      final nestedResult = _buildGenerationResult(nested.className, nested.result);
+      final nestedFileName = _modelNameToFileName(nested.className);
+      _writeRequestModelFile(nestedFileName, nestedResult.mainContent);
+      generatedModels.add(nested.className);
+      _usedModelNames.add(nested.className);
+      if (nestedResult.nestedClasses.isNotEmpty) {
+        _writeNestedRequestClassFiles(nestedResult.nestedClasses, generatedModels);
+      }
+    }
   }
 
   void _writeEnumFile(String enumName, String content) {
