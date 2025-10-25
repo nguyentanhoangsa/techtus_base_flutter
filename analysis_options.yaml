@@ -166,7 +166,6 @@ custom_lint:
         - "lib/ui/component/ui_kit/decoration/*.dart"
       test_folder: "test/widget_test"
     - invalid_test_group_name:
-      severity: info
       valid_group_names:
         - "others"
       includes:

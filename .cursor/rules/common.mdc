@@ -4,6 +4,33 @@ globs: ["**/*.dart"]
 alwaysApply: true
 ---
 
+# Essential Commands
+```bash
+# Get packages for all modules
+make pg
+
+# Run build_runner for code generation
+make fb
+
+# Run golden tests
+flutter test [test_path] --tags=golden
+
+# Update golden test files
+flutter test [test_path] --update-goldens --tags=golden
+
+# Format code
+make fm
+
+## Check lint
+make sl
+
+## Generate assets (images, fonts, etc.)
+make ga
+
+## Generate localization files
+make ln
+```
+
 # Common Development Rules
 
 ## 📖 Complete Documentation References
@@ -18,31 +45,20 @@ alwaysApply: true
 - No compile errors
 - No linter errors
 - Follow consistent code formatting
+- Follow rules in analysis_options.yaml
+- Follow rules in super_lint/README.md
+- Follow naming conventions in docs/technical/naming_convention.md
+- When implementing UI, follow instructions in docs/technical/ui_and_state_management_instructions.md
+- When writing golden tests, follow instructions in docs/technical/golden_test_instructions.md
+- When writing API integration code, follow instructions in docs/technical/api_integration_instructions.md
+- When creating new custom lint rules, follow instructions in docs/technical/custom_lint_instructions.md
 
 ## Import and Export Rules
 - Always use relative imports within the same module
 - Use `import '../../../index.dart';` for cross-module imports
 - All public APIs/files must be exported through index.dart
-- Maintain clean import organization
-
-## Code Quality
-- Follow established architecture patterns (MVVM, Clean Architecture)
-- Use proper naming conventions consistently
-- Implement proper error handling
-- Write comprehensive tests (unit and golden tests)
-- Follow security guidelines for sensitive data
 
 ## Security Guidelines
 - Never hardcode secrets or API keys
 - Use encryption for sensitive data storage
-- Validate all input data
 - Follow OWASP guidelines for mobile security
-- Use secure communication protocols (HTTPS)
-
-## Development Workflow
-1. Follow architecture guidelines for new features
-2. Apply naming conventions consistently
-3. Implement UI following design system rules
-4. Write tests following testing guidelines
-5. Ensure security requirements are met
-6. Document changes appropriately

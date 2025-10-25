@@ -16,7 +16,7 @@ sort_arb:
 	dart run $(DART_TOOLS_PATH)/sort_arb_files.dart lib/resource/l10n
 
 fb:
-	dart run build_runner build --delete-conflicting-outputs --verbose
+	dart run build_runner build --delete-conflicting-outputs
 
 cc:
 	dart run build_runner clean
@@ -132,7 +132,8 @@ check_assets_structure:
 
 gen_api:
 	@INPUT_PATH=$${input_path:-docs/api_doc}; \
-	CMD="dart run $(DART_TOOLS_PATH)/gen_api_from_swagger.dart --input_path=$$INPUT_PATH"; \
+	@WRAPPED_BY=$${wrapped_by:-data}; \
+	CMD="dart run $(DART_TOOLS_PATH)/gen_api_from_swagger.dart --input_path=$$INPUT_PATH --wrapped_by=$$WRAPPED_BY"; \
 	if [ ! -z "$(output_path)" ]; then \
 		CMD="$$CMD --output_path=$(output_path)"; \
 	fi; \

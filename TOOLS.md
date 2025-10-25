@@ -332,18 +332,36 @@ dart run tools/dart_tools/lib/set_build_number_pubspec.dart [build_number]
 make gen_env
 ```
 
-### 2.18. init_project.dart
+### 2.18. reset_project.dart
 
 **Mục đích**: 
-- Xoá code mẫu trong project
-- Config project khi mới start dự án giúp tiết kiệm thời gian setup ban đầu
+- Xoá toàn bộ code mẫu và example code trong project
+- Reset project về trạng thái ban đầu để chuẩn bị cho việc init project mới
 
 **Cách hoạt động**:
 - Xoá toàn bộ màn hình và unit test, widget test tương ứng trừ `splash` và `main`
-- Generate lại các file theo template cho 3 màn: `login`, `home`, `my_profile`
+- Xoá toàn bộ component example và test tương ứng
 - Xoá toàn bộ color trong app_colors.dart trừ màu `black`
-- Xoá 1 vài biến, hàm không cần thiết trong `shared_view_model.dart` và `shared_provider.dart`
+- Xoá code mẫu trong `shared_view_model.dart` và `shared_provider.dart`
+- Xoá routes example trong `app_router.dart`
+- Xoá code blocks được đánh dấu trong `main_view_model.dart` và `base_test.dart`
+- Xoá integration test folder
+
+**Cách sử dụng**:
+```bash
+make reset
+```
+
+### 2.19. init_project.dart
+
+**Mục đích**: 
+- Config project khi mới start dự án giúp tiết kiệm thời gian setup ban đầu
+- Generate lại các file theo template cho 3 màn: `login`, `home`, `my_profile`
+
+**Cách hoạt động**:
 - Đọc file `setting_initial_config.md` và config project
+- Generate lại các file theo template cho 3 màn: `login`, `home`, `my_profile`
+- Update Android MainActivity với bundle ID từ config
 
 **Cách sử dụng**:
 - Đảm bảo đã chạy lệnh `make gen_env` trước đó để tạo file `setting_initial_config.md`
@@ -353,7 +371,7 @@ make gen_env
 make init
 ```
 
-### 2.19. find_duplicate_svg.dart
+### 2.20. find_duplicate_svg.dart
 
 **Mục đích**:
 - Tìm các file SVG bị duplicate (cùng nội dung nhưng khác tên) để xóa bớt, giúp giảm bundle size.
@@ -367,7 +385,7 @@ make init
 make fds
 ```
 
-### 2.20. super_lint.sh
+### 2.21. super_lint.sh
 
 **Mục đích**:
 - Kiểm tra việc tuân thủ các rule trong package super_lint trong CI
@@ -381,7 +399,7 @@ make fds
 make sl
 ```
 
-### 2.21. check_assets_structure.dart
+### 2.22. check_assets_structure.dart
 
 **Mục đích**:
 - Kiểm tra cấu trúc assets tuân thủ quy tắc dự án để đảm bảo tính nhất quán và dễ maintain.
@@ -399,7 +417,7 @@ make sl
 make check_assets_structure
 ```
 
-### 2.22. MynaviMobileTool VSCode Extension
+### 2.23. MynaviMobileTool VSCode Extension
 
 **Mục đích**:
 - Giúp generate code với các commands và snippets hữu ích.
@@ -686,7 +704,7 @@ make cov_wt
 - Generate golden test, golden images và verify tests pass
 
 **Cách sử dụng**: 
-- Copy toàn bộ nội dung trong file [.prompt_templates/golden_test/generate_golden_tests.md](.prompt_templates/golden_test/generate_golden_tests.md)
+- Copy toàn bộ nội dung trong file [.prompt_templates/golden_test/generate_golden_tests_prompt.md](.prompt_templates/golden_test/generate_golden_tests_prompt.md)
 - Update `[YOUR_PAGE_FILE_PATH]` với đường dẫn đến file dart của page cần tạo golden test
 - Đính kèm hình ảnh design vào prompt để gia tăng độ chính xác
 
@@ -701,7 +719,7 @@ make cov_wt
 - Tạo golden tests và generate golden images
 
 **Cách sử dụng**: 
-- Copy toàn bộ nội dung trong file [.prompt_templates/ui/generate_ui_from_figma.md](.prompt_templates/ui/generate_ui_from_figma.md)
+- Copy toàn bộ nội dung trong file [.prompt_templates/ui/generate_page_prompt.md](.prompt_templates/ui/generate_page_prompt.md)
 - Update `[YOUR_FIGMA_LINK]` với link Figma
 - Update `[SNAKE_CASE_SCREEN_NAME]` với tên màn hình theo định dạng snake_case
 - Đính kèm hình ảnh design vào prompt để gia tăng độ chính xác
@@ -715,7 +733,7 @@ make cov_wt
 - Gen toàn bộ colors trong Figma vào file [app_colors.dart](lib/resource/app_colors.dart)
 
 **Cách sử dụng**: 
-- Copy toàn bộ nội dung trong file [.prompt_templates/ui/generate_app_colors.md](.prompt_templates/ui/generate_app_colors.md)
+- Copy toàn bộ nội dung trong file [.prompt_templates/ui/generate_app_colors_prompt.md](.prompt_templates/ui/generate_app_colors_prompt.md)
 - Update `[YOUR_FIGMA_LINK]` với link Figma
 
 ### 6.3. AI Code Review

@@ -35,7 +35,7 @@ class IncorrectGoldenImageName extends CommonLintRule<_IncorrectGoldenImageNameO
 
     // Extract page name from test file path
     final fileName = basenameWithoutExtension(resolver.path);
-    final pageName = fileName.replaceFirst('_test', '');
+    final pageName = fileName.replaceLast(pattern: '_test', replacement: '');
 
     context.registry.addMethodInvocation((node) {
       // Check if this is a testWidget method call inside testGoldens
@@ -127,7 +127,7 @@ class _IncorrectGoldenImageNameFix extends CommonQuickFix<_IncorrectGoldenImageN
     if (!resolver.path.endsWith('_test.dart')) return;
 
     final fileName = basenameWithoutExtension(resolver.path);
-    final pageName = fileName.replaceFirst('_test', '');
+    final pageName = fileName.replaceLast(pattern: '_test', replacement: '');
 
     context.registry.addMethodInvocation((node) {
       // Only handle testWidget calls

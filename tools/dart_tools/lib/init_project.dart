@@ -734,7 +734,7 @@ Future<void> _updateEnvDefault(String root, Map<String, dynamic> config) async {
 
   // Add fastlane variables
   if (fastlane['slackWebhook'] != null) {
-    envContent.add('SLACK_WEBHOOK=${fastlane['slackWebhook']}');
+    envContent.add('SLACK_HOOKS_URL=${fastlane['slackWebhook']}');
   }
 
   if (fastlane['issuerId'] != null) {

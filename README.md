@@ -17,17 +17,26 @@
 ## How to use this codebase
 
 // table of content
-- [1. Init Project](#1-init-project)
-- [2. Config Firebase](#2-config-firebase)
-- [3. Config Lefthook](#3-config-lefthook)
-- [4. Config Fastlane](#4-config-fastlane)
+- [1. Reset Project](#1-reset-project)
+- [2. Init Project](#2-init-project)
+- [3. Config Firebase](#3-config-firebase)
+- [4. Config Lefthook](#4-config-lefthook)
+- [5. Config Fastlane](#5-config-fastlane)
+- [6. Generate All Pages](#6-generate-all-pages)
+- [7. Generate App Colors](#7-generate-app-colors)
+- [8. Generate All APIs](#8-generate-all-apis)
+- [9. Generate UI from Figma](#9-generate-ui-from-figma)
+- [10. Other Tools](#10-other-tools)
 
-### 1. Init Project
+### 1. Reset Project
+- Run `make reset` to clean up example code and reset project to initial state
+
+### 2. Init Project
 - Run `make gen_env` to generate [setting_initial_config.md](setting_initial_config.md) file
 - Fill the JSON values in the [setting_initial_config.md](setting_initial_config.md) file
 - Run `make init`
 
-### 2. Config Firebase
+### 3. Config Firebase
 
 - Android: Paste your google services files to:
     - [Develop](android/app/src/develop)
@@ -40,14 +49,14 @@
     - [Staging](ios/config/staging)
     - [Production](ios/config/production)
 
-### 3. Config Lefthook
+### 4. Config Lefthook
 
 - Install lefthook
 - Run `lefthook install`
 - Update commit message rule: [commit-msg.sh](.lefthook/commit-msg/commit-msg.sh) and [check_commit_message.sh](tools/check_commit_message.sh)
 - Update branch name rule: [pre-commit.sh](.lefthook/pre-commit/pre-commit.sh) and [bitbucket-pipelines/pull-requests](bitbucket-pipelines.yml)
 
-### 4. Config Fastlane
+### 5. Config Fastlane
 - Install Fastlane
 - Run `make fastlane_update_plugins`
 - Put the .p8 file in folder [ios](ios)
@@ -56,15 +65,15 @@
   - [android/Fastfile](android/fastlane/Fastfile)
   - [.env.default](.env.default)
 
-### 5. Generate all pages
+### 6. Generate all pages
 - Fill all pages need to be generated in [lib/ui/page/input_pages.md](lib/ui/page/input_pages.md) file
 - Run `make gap` to generate all empty pages including `*.freezed.dart`, `*.gr.dart` files without running the command `make fb`
 
-### 6. Generate app colors
+### 7. Generate app colors
 - Make sure Figma MCP is running
-- Use the [generate_app_colors prompt](.prompt_templates/ui/generate_app_colors.md) with [YOUR_FIGMA_LINK] replaced by your Figma link to generate app colors in [lib/resource/app_colors.dart](lib/resource/app_colors.dart) file
+- Use the [generate_app_colors_prompt](.prompt_templates/ui/generate_app_colors_prompt.md) with [YOUR_FIGMA_LINK] replaced by your Figma link to generate app colors in [lib/resource/app_colors.dart](lib/resource/app_colors.dart) file
 
-### 7. Generate all APIs (methods and models)
+### 8. Generate all APIs (methods and models)
 - Place your OpenAPI JSON specification file in the `docs/api_doc` folder
 - Run `make gen_api` to generate API methods and model classes with default settings (append mode, using docs/api_doc)
 - Run `make fb` to generate the necessary build files after API generation
@@ -102,16 +111,16 @@ make gen_api input_path=swagger/docs replace=true apis=get_v1/search,post_v2/cit
 - In append mode (default), new methods are added without removing existing ones
 - In replace mode, all code below the marker is replaced
 
-### 8. Generate UI from Figma
+### 9. Generate UI from Figma
 - Make sure Figma MCP is running
 - Download all images used in the Figma design to assets/images folder
 - Run `make ga` to generate all assets in [app_images.dart](lib/resource/app_images.dart) file
 - Fill screen spec in *_spec.md file in the page folder
 - Attach the image (.png) of design from Figma to the /design folder (same level as the *_test.dart file in the widget_test folder)
-- Use the [generate_ui_from_figma prompt](.prompt_templates/ui/generate_ui_from_figma.md) with:
+- Use the [generate_page_prompt](.prompt_templates/ui/generate_page_prompt.md) with:
  - [YOUR_FIGMA_LINK] replaced by your Figma link to generate
  - [SNAKE_CASE_SCREEN_NAME] replaced by your screen name in snake_case
  - Attach the image (.png) of design from Figma to the prompt
 
-### 9. Other tools
+### 10. Other tools
 - [TOOLS.md](TOOLS.md)
