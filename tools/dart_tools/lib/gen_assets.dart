@@ -190,29 +190,21 @@ String _getGetterName(String fileName) {
   // Remove extension
   final nameWithoutExt = fileName.split('.').first;
 
-  // First split by underscore, then by spaces, then flatten
-  final underscoreParts = nameWithoutExt.split('_');
-  final allParts = <String>[];
-
-  for (final part in underscoreParts) {
-    if (part.contains(' ')) {
-      allParts.addAll(part.split(' '));
-    } else {
-      allParts.add(part);
-    }
-  }
-
-  // Remove empty parts and filter out non-alphanumeric characters
-  final cleanParts = allParts
+  // Split by common separators: underscore, hyphen, space
+  final allParts = nameWithoutExt
+      .split(RegExp(r'[_\- ]'))
       .where((part) => part.isNotEmpty)
       .map((part) => part.replaceAll(RegExp(r'[^a-zA-Z0-9]'), ''))
       .where((part) => part.isNotEmpty)
       .toList();
 
-  if (cleanParts.isEmpty) return 'asset';
+  if (allParts.isEmpty) return 'asset';
 
-  final firstPart = cleanParts.first.toLowerCase();
-  final remainingParts = cleanParts.skip(1).map((part) {
+  // First part should be lowercase
+  final firstPart = allParts.first.toLowerCase();
+
+  // Remaining parts should be capitalized (PascalCase)
+  final remainingParts = allParts.skip(1).map((part) {
     if (part.isEmpty) return part;
     return part[0].toUpperCase() + part.substring(1).toLowerCase();
   }).join('');

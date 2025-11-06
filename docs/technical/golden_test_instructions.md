@@ -2,148 +2,227 @@
 
 ## Overview
 
-This document provides comprehensive guidelines for writing golden tests in the this project, ensuring consistent UI testing across all components and pages.
+This document provides comprehensive guidelines for writing golden tests in this project, ensuring consistent UI testing across all components and pages.
+
+## Test Structure
+
+Golden tests follow a **3-level group structure**:
+
+```
+Level 1: Constructor Group (constructor name)
+├── Level 2: happy (normal cases)
+│   ├── Test case 1
+│   ├── Test case 2
+│   └── ...
+└── Level 2: unhappy (edge cases)
+    ├── Test case 1
+    ├── Test case 2
+    └── ...
+```
+
+**Key Points:**
+- **Level 1**: Constructor name (class name for default, factory/named constructor name otherwise)
+- **Level 2**: Always `'happy'` and `'unhappy'` sub-groups
+- **Level 3**: Individual test cases with `testGoldens`
+
+## Quick Reference
+
+| Rule | Requirement |
+|------|-------------|
+| File naming | `*_test.dart` |
+| Path structure | Mirror `lib` folder structure |
+| Group structure | Constructor → Happy/Unhappy → Test cases |
+| Level 1 name | Constructor name (class name for default) |
+| Level 2 names | `'happy'` and `'unhappy'` only |
+| Filename pattern | `[constructor name]/[test case]` |
 
 ## Core Rules
 
-### 1. File Structure Requirements
+### 1. File Structure
+
 - Test files must end with `_test.dart`
-- Test file paths must mirror the structure of the `lib` folder. Ex:
-  - Code file: `apps/user_app/lib/ui/page/account_information/account_information_page.dart`
-  - Test file: `apps/user_app/test/widget_test/ui/page/account_information/account_information_page_test.dart`
-- Must reuse variables, functions, and classes from `apps/shared/test/common` - do not create new ones
+- Test file paths must mirror the `lib` folder structure
+  - Code: `lib/ui/page/splash/splash_page.dart`
+  - Test: `test/widget_test/ui/page/splash/splash_page_test.dart`
+- Reuse variables/functions from `test/common` - do not create new ones
 
 ### 2. Test Group Organization
-Only 2 test groups are allowed:
-- **"design"**: Test cases must match file names in the `design/` folder with mock data that matches the design images
-- **"others"**: Must cover all edge cases and hidden cases not covered in the "design" group
 
-### 3. Quality Standards
-- Ensure Unit Tests and Golden Tests cover all edge cases and hidden cases
-- Verify that all golden images have no overflow errors or other issues
-- Ensure all golden images in the `goldens/` folder that match names with expected UI in the `design/` folder are identical with no UI bugs
+#### 3-Level Structure
 
-### 4. Other Rules
+```dart
+void main() {
+  group('[constructor_name]', () {  // Level 1: Constructor name
+    group('happy', () { ... });     // Level 2: Normal cases
+    group('unhappy', () { ... });   // Level 2: Edge cases
+  });
+}
+```
+
+#### Level 1: Constructor Groups
+
+| Constructor Type | Group Name | Example |
+|-----------------|------------|---------|
+| Default | Class name | `'SplashPage'` for `SplashPage()` |
+| Factory | Factory name | `'passwordResetCompleted'` for `ConfirmDialog.passwordResetCompleted()` |
+| Named | Constructor name | `'withData'` for `MyWidget.withData()` |
+
+#### Level 2: Sub-groups
+
+- **"happy"**: Normal/expected use cases with realistic mock data
+- **"unhappy"**: Edge cases, abnormal cases, hidden cases (empty states, long text, max/min values)
+
+**Important**: If a `happy` or `unhappy` group has no test cases, you MUST add a comment explaining why:
+
+```dart
+// No edge cases for this simple constructor
+// ignore: empty_test_group
+group('unhappy', () {});
+```
+
+### 3. Filename Pattern
+
+Pattern: `[constructor name]/[test case_description]`
+
+Examples:
+- `'SplashPage/default state'` (default constructor)
+- `'passwordResetCompleted/default'` (factory constructor)
+- `'withData/with full data'` (named constructor)
+
+### 4. Test Case Rules
 
 - Don't write tests for loading cases
-- Test case description and filename in group "design" must match the corresponding design image name
-- If multiple test cases can be combined into a single case, they should be merged. Ex: Instead of writing separate test cases for each field with long text, create one test case where all fields contain long text.
-- If the UI has a Network Image, pass `hasNetworkImage: true` and pass the `testImageUrl` variable to all dummy image urls
-- If the dummy data has a local image path, pass "" or null
+- Use clear, descriptive test case descriptions
+- Merge similar test cases (e.g., combine all "long text" fields into one test)
+- For network images: Pass `hasNetworkImage: true` and use `testImageUrl` variable
+- For local images: Pass `""` or `null`
 
 ## testWidget Parameters Guide
 
-The `testWidget` method provides various parameters to customize test behavior based on design requirements:
+### Core Parameters (Required)
 
-### Core Parameters
-
-#### `filename` (required)
-**Use Case**: Specifies the golden image file path
 ```dart
-filename: 'splash_page/default state'
+await tester.testWidget(
+  filename: 'SplashPage/default state', // Required
+  widget: const SplashPage(),           // Required
+  overrides: [                          // Required
+    splashViewModelProvider.overrideWith(
+      (ref) => MockSplashViewModel(const CommonState(data: SplashState())),
+    ),
+  ],
+);
 ```
 
-#### `widget` (required)
-**Use Case**: The widget to test
+### Optional Parameters
+
+| Parameter | Use Case | Default |
+|-----------|----------|---------|
+| `hasNetworkImage` | UI contains network images | `false` |
+| `mockToday` | Time-sensitive UI or mock data using `DateTime.now()` | `clock.now()` |
+| `additionalDevices` | Test on specific device sizes | `[]` |
+| `fullHeightDeviceCases` | Test scrollable content on specific devices | `[]` |
+| `includeTextScalingCase` | Test accessibility with different text sizes | `true` |
+| `mergeToSingleFile` | Merge all device screenshots into single file | `true` |
+| `useMultiScreenGolden` | Test multiple device sizes in one image | `false` |
+| `isDarkMode` | Test dark theme | `false` |
+| `locale` | Test specific locale | `TestConfig.defaultLocale` |
+| `onCreate` | Setup interactions before screenshot. Signature: `(WidgetTester tester, Key? key)` | - |
+| `customPump` | Custom pump logic for animations/async | - |
+
+### Parameter Examples
+
+#### Network Images
 ```dart
-widget: const SplashPage()
+await tester.testWidget(
+  filename: 'profile/with avatar',
+  widget: const ProfilePage(),
+  hasNetworkImage: true, // Precache network images
+  overrides: [...],
+);
 ```
 
-#### `overrides` (required)
-**Use Case**: Provider overrides for mocking dependencies
+#### Time-Sensitive Component
 ```dart
-overrides: [
-  splashViewModelProvider.overrideWith(
-    (ref) => MockSplashViewModel(const CommonState(data: SplashState())),
-  ),
-]
+await tester.testWidget(
+  filename: 'calendar/january 2024',
+  widget: const CalendarWidget(),
+  mockToday: DateTime(2024, 1, 15), // Fixed date
+  overrides: [...],
+);
 ```
 
-### Network & Image Parameters
-
-#### `hasNetworkImage`
-**Use Case**: When the UI contains network images
-**Default**: `false`
+#### Interactive Component
 ```dart
-// Use when testing components with CommonImage.network, user avatars, etc.
-hasNetworkImage: true
+await tester.testWidget(
+  filename: 'form/filled state',
+  widget: const FormPage(),
+  onCreate: (tester, key) async {
+    // key is the widget key (usually null when mergeToSingleFile: true)
+    await tester.enterText(find.byType(CommonTextField).first, 'Test Value');
+    await tester.pumpAndSettle();
+  },
+  overrides: [...],
+);
 ```
 
-### Time & Date Parameters
+**Note about `onCreate` parameters:**
+- `tester` - WidgetTester instance for interaction
+- `key` - Widget key provided by DeviceBuilder (when `mergeToSingleFile: true`) or `null` (when `mergeToSingleFile: false`)
 
-#### `mockToday`
-**Use Case**: When data/state in UI or mock data using DateTime.now() or clock.now()
-**Default**: `clock.now()`
+#### Dialog (Fixed Size)
 ```dart
-// Use for date pickers, calendars, time-based content
-mockToday: DateTime(2024, 1, 15, 10, 30)
+await tester.testWidget(
+  filename: 'dialog/confirmation',
+  widget: const ConfirmationDialog(),
+  fullHeightDeviceCases: [], // No full height for dialogs
+  includeTextScalingCase: false, // Fixed size
+  overrides: [...],
+);
 ```
 
-### Device & Layout Parameters
-
-#### `additionalDevices`
-**Use Case**: Testing on specific device sizes beyond defaults
-**Default**: `[]`
+#### Scrollable Content (Full Height)
 ```dart
-// Use for responsive design testing
-additionalDevices: [TestDevice.tabletLandscape]
+await tester.testWidget(
+  filename: 'list/long_content',
+  widget: const LongListPage(),
+  fullHeightDeviceCases: [AppTestDeviceType.iphone13], // Test full height on iPhone 13
+  overrides: [...],
+);
 ```
 
-#### `includeFullHeightCase`
-**Use Case**: Testing scrollable content and long forms
-**Default**: `true`
+#### Dark Mode
 ```dart
-// Set to false for fixed-height components like dialogs
-includeFullHeightCase: false
+await tester.testWidget(
+  filename: 'profile/dark_mode',
+  widget: const ProfilePage(),
+  isDarkMode: true, // Test dark theme
+  overrides: [...],
+);
 ```
 
-#### `includeTextScalingCase`
-**Use Case**: Testing accessibility with different text sizes
-**Default**: `true`
+#### Different Locale
 ```dart
-// Set to false for components that don't support text scaling
-includeTextScalingCase: false
+await tester.testWidget(
+  filename: 'welcome/english',
+  widget: const WelcomePage(),
+  locale: const Locale('en'), // Test English locale
+  overrides: [...],
+);
 ```
 
-#### `useMultiScreenGolden`
-**Use Case**: Testing multiple device sizes in a single golden image
-**Default**: `false`
+#### Separate Files Per Device
 ```dart
-// Use for comparison across device sizes
-useMultiScreenGolden: true
+await tester.testWidget(
+  filename: 'complex_layout/responsive',
+  widget: const ComplexLayoutPage(),
+  mergeToSingleFile: false, // Generate separate file for each device
+  overrides: [...],
+);
 ```
 
-### Interaction Parameters
+## Template Examples
 
-#### `onCreate`
-**Use Case**: Setup interactions before taking screenshots
-```dart
-onCreate: (tester) async {
-  // Tap a button, scroll, enter text, etc.
-  await tester.tap(find.byType(CommonButton));
-  await tester.pumpAndSettle();
-}
-```
-
-#### `customPump`
-**Use Case**: Custom pump logic for animations or async operations. It usually is used for fixing strange UI issues on golden images.
-```dart
-customPump: (tester) async {
-  await tester.pump(Duration(seconds: 1));
-}
-```
-
-### Performance Parameters
-
-#### `runAsynchronous`
-**Use Case**: Control async execution for complex widgets
-**Default**: `true`
-```dart
-// Set to false for simple widgets to improve test performance
-runAsynchronous: false
-```
-
-## Template Structure
+### Example 1: Default Constructor
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -155,178 +234,212 @@ import 'package:shared/index.dart';
 
 import '../../../../common/index.dart';
 
-class Mock[PageName]ViewModel extends StateNotifier<CommonState<[PageName]State>>
+class MockSplashViewModel extends StateNotifier<CommonState<SplashState>>
     with Mock
-    implements [PageName]ViewModel {
-  Mock[PageName]ViewModel(super.state);
+    implements SplashViewModel {
+  MockSplashViewModel(super.state);
 }
 
 void main() {
-  group(
-    'design',
-    () {
-      testGoldens(
-        'i1_S-6-4-8.料金表詳細画面（メインメニュー）',
-        (tester) async {
-          // TODO: Add realistic mock data based on design
-          
-          await tester.testWidget(
-            filename: '[page_name]/i1_S-6-4-8.料金表詳細画面（メインメニュー）',
-            widget: const [PageName](),
-            overrides: [
-              [pageProvider].overrideWith(
-                (ref) => Mock[PageName]ViewModel(
-                  const CommonState(data: [PageName]State()),
-                ),
+  group('SplashPage', () {
+    group('happy', () {
+      testGoldens('default state', (tester) async {
+        await tester.testWidget(
+          filename: 'SplashPage/default state',
+          widget: const SplashPage(),
+          overrides: [
+            splashViewModelProvider.overrideWith(
+              (ref) => MockSplashViewModel(
+                const CommonState(data: SplashState()),
               ),
-            ],
-          );
-        },
-      );
-    },
-  );
-  
-  group(
-    'others',
-    () {
-      testGoldens(
-        'empty state',
-        (tester) async {
-          await tester.testWidget(
-            filename: '[page_name]/empty state',
-            widget: const [PageName](),
-            overrides: [
-              [pageProvider].overrideWith(
-                (ref) => Mock[PageName]ViewModel(
-                  const CommonState(data: [PageName]State()),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
+            ),
+          ],
+        );
+      });
+    });
+    
+    // No edge cases for splash page's simple display
+    // ignore: empty_test_group
+    group('unhappy', () {});
+  });
 }
 ```
 
-## Parameter Usage Examples
+### Example 2: Factory Constructors
 
-### Example 1: Simple Page Test
 ```dart
-await tester.testWidget(
-  filename: 'splash/default state',
-  widget: const SplashPage(),
-  overrides: [
-    splashViewModelProvider.overrideWith(
-      (ref) => MockSplashViewModel(const CommonState(data: SplashState())),
-    ),
-  ],
-);
+void main() {
+  // Level 1: First factory constructor
+  group('passwordResetCompleted', () {
+    group('happy', () {
+      testGoldens('default', (tester) async {
+        await tester.testWidget(
+          filename: 'passwordResetCompleted/default',
+          widget: ConfirmDialog.passwordResetCompleted(
+            onConfirmPressed: () {},
+          ),
+        );
+      });
+    });
+    
+    group('unhappy', () {
+      testGoldens('long text', (tester) async {
+        await tester.testWidget(
+          filename: 'passwordResetCompleted/long text',
+          widget: ConfirmDialog.passwordResetCompleted(
+            onConfirmPressed: () {},
+          ),
+        );
+      });
+    });
+  });
+  
+  // Level 1: Second factory constructor
+  group('error', () {
+    group('happy', () {
+      testGoldens('default', (tester) async {
+        await tester.testWidget(
+          filename: 'error/default',
+          widget: ConfirmDialog.error(
+            message: 'An error occurred',
+            onConfirmPressed: () {},
+          ),
+        );
+      });
+    });
+    
+    group('unhappy', () {
+      testGoldens('very long error message', (tester) async {
+        await tester.testWidget(
+          filename: 'error/very long error message',
+          widget: ConfirmDialog.error(
+            message: 'Very long error message...',
+            onConfirmPressed: () {},
+          ),
+        );
+      });
+    });
+  });
+}
 ```
 
-### Example 2: Page with Network Images
-```dart
-await tester.testWidget(
-  filename: 'profile/with avatar',
-  widget: const ProfilePage(),
-  hasNetworkImage: true, // Precache network images
-  overrides: [
-    profileViewModelProvider.overrideWith(
-      (ref) => MockProfileViewModel(
-        const CommonState(data: ProfileState(avatarUrl: 'https://example.com/avatar.jpg')),
-      ),
-    ),
-  ],
-);
-```
+### Example 3: Named Constructor
 
-### Example 3: Time-Sensitive Component
 ```dart
-await tester.testWidget(
-  filename: 'calendar/january 2024',
-  widget: const CalendarWidget(),
-  mockToday: DateTime(2024, 1, 15), // Fixed date for consistent testing
-  overrides: [...],
-);
-```
-
-### Example 4: Interactive Component
-```dart
-await tester.testWidget(
-  filename: 'form/filled state',
-  widget: const FormPage(),
-  onCreate: (tester) async {
-    // Fill form fields before screenshot
-    await tester.enterText(find.byType(CommonTextField).first, 'Test Value');
-    await tester.pumpAndSettle();
-  },
-  overrides: [...],
-);
-```
-
-### Example 5: Dialog Test (Fixed Size)
-```dart
-await tester.testWidget(
-  filename: 'dialog/confirmation',
-  widget: const ConfirmationDialog(),
-  includeFullHeightCase: false, // Dialogs don't need full height testing
-  includeTextScalingCase: false, // Fixed size dialog
-  overrides: [...],
-);
+void main() {
+  group('withData', () {
+    group('happy', () {
+      testGoldens('with full data', (tester) async {
+        await tester.testWidget(
+          filename: 'withData/with full data',
+          widget: UserCard.withData(
+            name: 'John Doe',
+            email: 'john@example.com',
+          ),
+        );
+      });
+    });
+    
+    group('unhappy', () {
+      testGoldens('with long name', (tester) async {
+        await tester.testWidget(
+          filename: 'withData/with long name',
+          widget: UserCard.withData(
+            name: 'Very Long Name That Exceeds Normal Length...',
+            email: 'john@example.com',
+          ),
+        );
+      });
+    });
+  });
+}
 ```
 
 ## Validation Checklist
 
-### ✅ Mock Data Quality
+### Mock Data Quality
 - [ ] Use Japanese text for display content
 - [ ] Realistic pricing (e.g., 99999 instead of 1000)
 - [ ] Realistic time values (e.g., 999 minutes)
-- [ ] Complete item lists (dogBreeds, categories)
-- [ ] Long descriptions/notes with line breaks
+- [ ] Complete item lists
+- [ ] Long descriptions with line breaks
 - [ ] Realistic IDs and numeric values
 
-### ✅ Test Structure
+### Test Structure
 - [ ] Correct import statements
-- [ ] Mock ViewModel class follows pattern
-- [ ] testGoldens structure is correct
+- [ ] Mock ViewModel follows pattern
+- [ ] 3-level group structure is correct
 - [ ] Filename convention is correct
 - [ ] Provider overrides are correct
+- [ ] Empty test groups have `// ignore: empty_test_group` with reason
 
-### ✅ Parameter Usage
-- [ ] `hasNetworkImage` set when UI contains network images
+### Parameter Usage
+- [ ] `hasNetworkImage` set when needed
 - [ ] `mockToday` used for time-sensitive components
 - [ ] `onCreate` used for interaction testing
-- [ ] `includeFullHeightCase` set appropriately
+- [ ] `fullHeightDeviceCases` set appropriately for scrollable content
 - [ ] `includeTextScalingCase` set appropriately
+- [ ] `isDarkMode` used when testing dark theme
+- [ ] `locale` set when testing different languages
+- [ ] `mergeToSingleFile` set to `false` when need separate files per device
 
-### ✅ Execution
+### Execution
 - [ ] Test runs successfully with `--update-goldens`
 - [ ] Test passes with `--tags=golden`
-- [ ] Test file has no lint errors
-- [ ] Golden images are generated completely without errors
+- [ ] No lint errors
+- [ ] Golden images generated without errors
 
-### ✅ File Organization
-- [ ] Test file follows correct path convention
-- [ ] Golden images are in `goldens/` folder
-- [ ] Design images are in `design/` folder (if applicable)
+## Critical Rules to Follow
+
+### MUST DO:
+- Follow 3-level group structure: Constructor → Happy/Unhappy → Test cases
+- Level 1 group name = constructor name (exact match)
+- Every constructor group has `happy` and `unhappy` sub-groups
+- Use correct filename pattern: `[constructor name]/[test case]`
+- Reuse utilities from `test/common/index.dart`
+- Use realistic mock data with Japanese text
+- Set `hasNetworkImage: true` when UI contains network images
+
+### MUST NOT:
+- Create duplicate mock classes or utilities
+- Skip happy or unhappy groups
+- Use incorrect group names
+- Test loading states (only use `data` property in `CommonState`)
+
+## Process Guidelines
+
+### Smart Behavior:
+- Can process single file, multiple files, or entire folders
+- If file already exists with many errors or rule violations → Regenerate from scratch
+- If file exists with minor issues → Only update/fix specific issues
+- Provide summary after processing all files
+
+### File Processing Logic:
+- Determine target files by scanning folders or using provided file paths
+- Check if test file already exists and analyze for rule violations
+- Generate or regenerate tests following the 3-level structure
+- Generate golden images and verify tests pass
+- Handle failures by fixing test cases or source code
 
 ## Commands Reference
 
 ```bash
-# Basic commands
-cd apps/[app_name]
+# Update golden images
 flutter test [test_path] --update-goldens --tags=golden
+
+# Run golden tests
 flutter test [test_path] --tags=golden
+
+# Run specific constructor group
+flutter test [test_path] --tags=golden --name="SplashPage"
+
+# Run specific happy/unhappy group
+flutter test [test_path] --tags=golden --name="SplashPage happy"
+flutter test [test_path] --tags=golden --name="SplashPage unhappy"
 
 # Find golden files
 find test/widget_test -name "*.png" -type f
 
-# Open images for comparison
+# Open golden image
 open [golden_image_path]
-open [design_image_path]
-
-# Run specific test group
-flutter test [test_path] --tags=golden --name="design"
-flutter test [test_path] --tags=golden --name="others"
 ```

@@ -125,7 +125,7 @@ FutureOr<int?> getUserAge() async {
 
 ### 2. prefer_named_parameters
 
-Nếu function hoặc constructor có nhiều parameters hơn threshold, sử dụng named parameters.
+Nếu function hoặc constructor có nhiều parameters hơn threshold (mặc định là 2), sử dụng named parameters.
 
 **Parameters**:
 - `threshold` (int, default: 2): Số lượng parameters tối thiểu để yêu cầu named parameters

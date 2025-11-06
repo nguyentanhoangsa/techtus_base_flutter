@@ -26,7 +26,6 @@ extension RefExt on Ref {
 
   // api
   AppApiService get appApiService => read(appApiServiceProvider);
-  LoadMoreUsersExecutor get loadMoreUsersExecutor => read(loadMoreUsersExecutorProvider);
 
   // firebase
   FirebaseFirestoreService get firebaseFirestoreService => read(firebaseFirestoreServiceProvider);

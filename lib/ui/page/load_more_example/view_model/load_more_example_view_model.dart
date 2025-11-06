@@ -28,9 +28,9 @@ class LoadMoreExampleViewModel extends BaseViewModel<LoadMoreExampleState> {
     return runCatching(
       action: () async {
         data = data.copyWith(isShimmerLoading: isInitialLoad, loadUsersException: null);
-        final output = await _ref.loadMoreUsersExecutor.execute(
-          isInitialLoad: isInitialLoad,
-        );
+        final output = await _ref.read(loadMoreUsersExecutorProvider).execute(
+              isInitialLoad: isInitialLoad,
+            );
         data = data.copyWith(users: output);
       },
       doOnError: (e) async {

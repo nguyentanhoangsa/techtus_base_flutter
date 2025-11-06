@@ -12,7 +12,7 @@ void main() {
         await tester.testWidget(
           filename: 'common_divider/horizontal',
           widget: const CommonDivider(
-            color: Colors.black,
+            dividerColor: Colors.black,
             thickness: 2,
           ),
           includeTextScalingCase: false,
@@ -26,7 +26,7 @@ void main() {
             height: 100,
             child: CommonDivider(
               direction: DividerDirection.vertical,
-              color: Colors.black,
+              dividerColor: Colors.black,
               thickness: 2,
             ),
           ),
@@ -38,7 +38,7 @@ void main() {
         await tester.testWidget(
           filename: 'common_divider/horizontal with indent',
           widget: const CommonDivider(
-            color: Colors.black,
+            dividerColor: Colors.black,
             thickness: 2,
             indent: 8,
             endIndent: 8,

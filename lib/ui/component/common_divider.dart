@@ -4,14 +4,14 @@ class CommonDivider extends StatelessWidget {
   const CommonDivider({
     super.key,
     this.direction = DividerDirection.horizontal,
-    this.color,
+    this.dividerColor,
     this.thickness,
     this.indent,
     this.endIndent,
   });
 
   final DividerDirection direction;
-  final Color? color;
+  final Color? dividerColor;
   final double? thickness;
   final double? indent;
   final double? endIndent;
@@ -24,7 +24,7 @@ class CommonDivider extends StatelessWidget {
             // ignore: prefer_common_widgets
             child: Divider(
               height: thickness,
-              color: color,
+              color: dividerColor,
               indent: indent,
               endIndent: endIndent,
             ),
@@ -34,7 +34,7 @@ class CommonDivider extends StatelessWidget {
             // ignore: prefer_common_widgets
             child: VerticalDivider(
               width: thickness,
-              color: color,
+              color: dividerColor,
               indent: indent,
               endIndent: endIndent,
             ),

@@ -5,6 +5,15 @@ extension NullableListExtensions<T> on List<T>? {
   bool get isNullOrEmpty => this == null || this!.isEmpty;
 }
 
+extension NullableStringExtensions on String? {
+  bool get isNotNullAndNotEmpty => this != null && this!.isNotEmpty;
+}
+
+extension BuildContextExtensions on BuildContext {
+  ThemeData get theme => Theme.of(this);
+  FocusScopeNode get focusScope => FocusScope.of(this);
+}
+
 extension ListExtensions<T> on List<T> {
   List<T> appendOrExceptElement(T item) {
     return contains(item)
