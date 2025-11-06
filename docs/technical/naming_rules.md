@@ -9,7 +9,7 @@
     * GOOD: `ApiClient`, `HttpClient`, `appIOS`
 5. All naming must follow the same convention consistently throughout the entire project
 
-## Naming Convention
+## Naming Rules
 
 1. Naming variables, constants, parameters
     * must be in camelCase
@@ -23,7 +23,6 @@
     * If there is a unit, include the unit as a postfix
         * GOOD: `timestampInSecond`, `timestampInMillisecond`, `distanceInCm`, `distanceInMeter`
         * BAD: `timestamp`, `distance`, `userWeight`
-    * See more common mistakes in the section: [Common rules](#common-rules)
 
 2. Naming functions, methods
     * must be in camelCase
@@ -39,7 +38,6 @@
     * Booleans → is/has/can/should/will
         * GOOD: `isLoading`, `hasData`, `canLogin`, `shouldLogin`, `willLogin`
         * BAD: `loading`, `data`, `login`, `login`, `login`
-    * See more common mistakes in the section: [Common rules](#common-rules)
 
 3. Naming classes, enums, interfaces, mixins, typedefs
     * must be in PascalCase
@@ -49,11 +47,9 @@
     * Abstract classes / interfaces → do not add `I` prefix. Use the original meaningful name.
         * GOOD: `CommonInterface`, `AuthInterface`
         * BAD: `ICommonInterface`, `IAuthInterface`
-    * See more common mistakes in the section: [Common rules](#common-rules)
 
 4. Naming files, folders
     * must be in snake_case
-    * See more common mistakes in the section: [Common rules](#common-rules)
 
 5. Naming colors in the AppColor class
     * Follow the name of the color in the design
@@ -99,5 +95,3 @@
 
 9. Testing
     * Test files must end with `_test.dart`
-    * Only 2 test groups are allowed: "design" and "others"
-    * Test case filename in "design" group must match the expected image name in "design/" folder

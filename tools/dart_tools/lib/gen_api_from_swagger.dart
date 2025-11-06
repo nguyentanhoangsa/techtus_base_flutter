@@ -613,7 +613,7 @@ class ApiGenerator {
 
     // Use request model class for body
     final requestModelName = _generateRequestModelName(endpoint);
-    
+
     return BodyParamsGenerationResult(
       paramSignatures: ['required $requestModelName request'],
       bodySetupLines: const [],
@@ -730,14 +730,14 @@ class ApiGenerator {
   String _generateRequestModelName(EndpointInfo endpoint) {
     final cleanPath = _cleanPathForName(endpoint.path);
     var base = _toPascalCase(cleanPath);
-    
+
     // Remove "Data" suffix if present (case-insensitive)
     if (base.endsWith('Data')) {
       base = base.substring(0, base.length - 4);
     }
-    
+
     final requestName = '${base}Request';
-    
+
     // Don't use _registerModelName for request models to avoid auto-appending "Data"
     // Request models should have unique names without collision
     return requestName;
@@ -985,10 +985,10 @@ class ApiGenerator {
     print('🏗️ Generating request models...');
     for (final endpoint in endpoints) {
       if (!_shouldIncludeEndpoint(endpoint)) continue;
-      
+
       final bodySchema = endpoint.bodySchema;
       if (bodySchema == null || bodySchema.isEmpty) continue;
-      
+
       final requestModelName = _generateRequestModelName(endpoint);
       final result = _generateRequestModelFileFromSchema(
         requestModelName,
@@ -1452,7 +1452,7 @@ part '$fileName.g.dart';''';
       } else {
         // Check if dartType already has nullable syntax
         final isAlreadyNullable = dartType.endsWith('?');
-        
+
         // Remove nullable syntax if present - we'll handle it ourselves
         fieldType = isAlreadyNullable ? dartType.substring(0, dartType.length - 1) : dartType;
 
@@ -1478,8 +1478,10 @@ part '$fileName.g.dart';''';
           defaultValue = '@Default($fieldType.none)';
         } else if (!fieldType.endsWith('?')) {
           // For object types, gen default with empty constructor
-          final isPrimitive = fieldType == 'String' || fieldType == 'int' || 
-                              fieldType == 'double' || fieldType == 'bool';
+          final isPrimitive = fieldType == 'String' ||
+              fieldType == 'int' ||
+              fieldType == 'double' ||
+              fieldType == 'bool';
           final isCollection = fieldType.startsWith('List<') || fieldType.startsWith('Map<');
           if (!isPrimitive && !isCollection) {
             defaultValue = '@Default($fieldType())';
@@ -1536,13 +1538,13 @@ part '$fileName.g.dart';''';
       } else {
         // Check if dartType already has nullable syntax
         final isAlreadyNullable = dartType.endsWith('?');
-        
+
         // Check if field is nullable from schema
         final isNullableFromSchema = (fieldSchema['nullable'] as bool? ?? false);
-        
+
         // Remove nullable syntax if present
         final baseType = isAlreadyNullable ? dartType.substring(0, dartType.length - 1) : dartType;
-        
+
         // Determine final nullable status:
         // - If not required → nullable (no default)
         // - If nullable in schema → nullable (no default)
